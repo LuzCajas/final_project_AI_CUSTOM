@@ -143,3 +143,55 @@ Capturas del proceso en `docs/evidencias/`.
 ## PROMPTS.md
 
 Registro cronológico de uso de IA disponible en `PROMPTS.md`.
+
+## Validación final
+
+**19 pruebas en total — 19/19 OK**
+
+| Suite | Archivo | Pruebas | Resultado |
+|---|---|---|---|
+| Base API | `tests/base/test_base_api.py` | 3 | ✅ |
+| Validación CAG | `tests/validation/test_cag_contract.py` | 3 | ✅ |
+| Unitarias ContextStore | `tests/test_context_store.py` | 8 | ✅ |
+| Unitarias CAG | `tests/test_cag.py` | 5 | ✅ |
+
+### Cómo ejecutar la validación completa
+
+```powershell
+$env:PYTHONPATH="."; python -m unittest discover -s tests/base -p "test_*.py" -v
+$env:PYTHONPATH="."; python -m unittest discover -s tests/validation -p "test_*.py" -v
+$env:PYTHONPATH="."; python -m unittest tests.test_context_store -v
+$env:PYTHONPATH="."; python -m unittest tests.test_cag -v
+```
+
+## Explicación técnica breve
+
+### Problema
+El proyecto base tenía un sistema RAG que respondía preguntas desde una base de conocimiento, pero no conservaba contexto persistente del usuario. Cada pregunta se respondía de forma aislada, sin recordar preferencias ni adaptar el estilo de respuesta.
+
+### Solución: Módulo CAG (Context-Augmented Generation)
+
+Se integró un módulo CAG con 3 componentes:
+
+1. **ContextStore** (`backend/context_store.py`): Almacén en memoria con estructura `{user_id: {key: value}}`. Provee `save()`, `list_for_user()` y `get()`. Los datos se aíslan por usuario.
+
+2. **apply_context** (`backend/cag.py`): Función pura que recibe el contexto del usuario y modifica la respuesta base. Soporta claves como `audience` (ej. "explicar como principiante") y `preferred_style`, con un formato genérico de fallback para cualquier clave adicional.
+
+3. **Orquestación** (`backend/assistant.py`): `answer_question()` ahora recibe un `context_store` opcional, recupera el contexto del usuario, obtiene los snippets RAG de la base de conocimiento, y pasa ambos a `apply_context()` para generar la respuesta final.
+
+### Flujo de datos
+
+```
+POST /api/ask {user_id, question}
+  → knowledge.retrieve_snippets(question)   [RAG]
+  → context_store.list_for_user(user_id)    [CAG]
+  → cag.apply_context(base_answer, context) [Fusión]
+  → Response: {answer, sources, context_used}
+```
+
+### Decisiones técnicas
+
+- **Sin dependencias externas**: Todo con biblioteca estándar Python (`http.server`, `json`, `unittest`).
+- **Separación de responsabilidades**: `context_store` (persistencia), `cag` (lógica de modificación), `assistant` (orquestación).
+- **TDD aplicado**: Primero se escribieron las pruebas (validación CAG como contrato), luego la implementación.
+- **Scrum real**: 2 sprints con backlog, planning, execution, review y retrospectiva documentados.
