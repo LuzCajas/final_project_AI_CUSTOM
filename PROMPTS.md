@@ -185,3 +185,34 @@ $env:PYTHONPATH="."; python -m unittest tests.test_context_store -v
 
 ---
 
+## Entrada 6 — 2026-06-12
+
+### Objetivo del prompt
+Agregar pruebas unitarias para la función `apply_context` del módulo CAG (paso 8 de las instrucciones).
+
+### Prompt usado
+"dime como hacer las pruebas propias para este inciso" (refiriéndose al paso 8 de implementar integración CAG, agregar pruebas propias y actualizar documentación).
+
+### Resumen de la respuesta recibida
+El asistente propuso 5 pruebas unitarias para `tests/test_cag.py`:
+- `test_sin_contexto_devuelve_misma_respuesta`: sin contexto, respuesta no cambia
+- `test_contexto_audience_modifica_respuesta`: contexto de audiencia se refleja en respuesta
+- `test_contexto_preferred_style_se_aplica`: estilo preferido se aplica
+- `test_multiples_contextos_se_combinan`: múltiples claves de contexto funcionan juntas
+- `test_contexto_generico_fallback`: claves no conocidas usan formato genérico
+
+### Decisión humana tomada
+Se aceptó la propuesta completa y se creó el archivo con las 5 pruebas.
+
+### Cambios realizados en el proyecto
+- Creado: `tests/test_cag.py` con 5 pruebas unitarias para `apply_context()`
+- Commit: `test: agregar pruebas unitarias para apply_context en cag.py`
+
+### Verificación aplicada
+```powershell
+$env:PYTHONPATH="."; python -m unittest tests.test_cag -v
+# Resultado: 5 tests OK
+```
+
+---
+
